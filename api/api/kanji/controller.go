@@ -3,7 +3,6 @@ package kanji
 import (
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"net/http"
 
 	"app/database"
@@ -14,10 +13,6 @@ import (
 	"github.com/gorilla/mux"
 	"gopkg.in/mgo.v2/bson"
 )
-
-func init() {
-	log.Println("innit?")
-}
 
 // response-code: 204, response-body: empty
 func Delete(w http.ResponseWriter, r *http.Request) {
@@ -70,28 +65,26 @@ func Post(w http.ResponseWriter, r *http.Request) {
 
 	// Read body
 	payload, err := ioutil.ReadAll(r.Body)
+
 	if err != nil {
 
 		response.InternalServerError(w)
 		return
 	}
 
-	// Read kanji
-	kanji := &models.Kanji{}
-	err = json.Unmarshal(payload, kanji)
-	if err != nil {
+	kanji, errs := validate(payload)
+	if errs != nil {
 
-		response.InternalServerError(w)
+		response.UnprocessableEntity(w, errs)
 		return
 	}
 
 	session, collection := database.GetCollection(models.TableKanji)
 	defer session.Close()
 
-	// Insert new
 	if err := collection.Insert(kanji); err != nil {
 
-		response.NotFound(w)
+		response.InternalServerError(w)
 		return
 	}
 
