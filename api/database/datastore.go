@@ -76,8 +76,6 @@ func seedKanjiData() {
 
 	kanji.Migrate(collection)
 
-	//models.MigrateKanji(collection)
-
 	err := collection.Insert(
 		bson.M{"writing": "日", "reading": "にち", "meaning": "day"},
 		bson.M{"writing": "木", "reading": "き", "meaning": "tree"},

@@ -2,114 +2,164 @@ package validation
 
 import (
 	"fmt"
+	"reflect"
 	"regexp"
 	"strconv"
+	"strings"
 	"unicode/utf8"
 )
 
-type Validator interface {
-	Required() (string, bool)
-	String() (string, bool)
-	MaxChars() (string, bool)
-	MinChars() (string, bool)
-	URL() (string, bool)
-	Kanji() (string, bool)
-	Kana() (string, bool)
-	Unique() (string, bool)
+var validationErrors map[string][]string
+
+var rules map[string][]string
+
+func Validate(payload interface{}, _rules map[string][]string) map[string][]string {
+
+	defer reset()
+
+	validationErrors = make(map[string][]string)
+
+	rules = _rules
+
+	for key, value := range getPayloadProperties(payload) {
+		validateProperty(key, value)
+	}
+
+	return validationErrors
+}
+
+func reset() {
+	rules = map[string][]string{}
+	validationErrors = map[string][]string{}
+}
+
+func getPayloadProperties(payload interface{}) map[string]interface{} {
+
+	concreteValues := reflect.ValueOf(payload)
+
+	properties := make(map[string]interface{})
+
+	for i := 0; i < concreteValues.Type().NumField(); i++ {
+
+		name := concreteValues.Type().Field(i).Tag.Get("json")
+		value := concreteValues.Field(i).Interface()
+
+		properties[name] = value
+	}
+
+	return properties
+}
+
+func validateProperty(name string, value interface{}) {
+
+	fieldRules := rules[name]
+
+	for _, rule := range fieldRules {
+		resolveValidationMethod(rule, name, value)
+	}
+}
+
+func resolveValidationMethod(ruleName string, name string, value interface{}) {
+
+	var params string
+
+	if strings.Contains(ruleName, ":") {
+
+		parts := strings.Split(ruleName, ":")
+
+		ruleName = parts[0]
+		params = parts[1]
+	}
+
+	switch ruleName {
+	case "required":
+		Required(name, value.(string))
+	case "max_chars":
+		MaxChars(name, value.(string), params)
+	case "min_chars":
+		MinChars(name, value.(string), params)
+	case "url":
+		URL(name, value.(string))
+	case "kanji":
+		KanjiJP(name, value.(string))
+	case "kana":
+		KanaJP(name, value.(string))
+	default:
+
+	}
 }
 
 // "input" cannot be empty.
-func Required(input string) (string, bool) {
+func Required(name string, input string) {
 
 	if input == "" {
-		str := "Cannot be empty."
-		return str, false
+
+		addError(name, "Cannot be empty.")
 	}
-
-	return "", true
-}
-
-func String(input interface{}) (string, bool) {
-	if _, ok := input.(string); !ok {
-
-		str := "Has to be of type string."
-		return str, false
-	}
-
-	return "", true
-}
-
-func Int() {
-
 }
 
 // "input" can have "max" amount of characters.
-func MaxChars(input string, max int) (string, bool) {
+func MaxChars(name string, input string, param string) {
+
+	max, _ := strconv.Atoi(param)
+
 	if utf8.RuneCountInString(input) > max {
 
-		str := fmt.Sprintf("Maximum %s characters.", strconv.Itoa(max))
+		output := fmt.Sprintf("Maximum %s characters.", strconv.Itoa(max))
 
-		return str, false
+		addError(name, output)
 	}
-
-	return "", true
 }
 
 // "input" must have "min" amount of characters.
-func MinChars(min int, input string) (string, bool) {
+func MinChars(name string, input string, param string) {
+
+	min, _ := strconv.Atoi(param)
+
 	if utf8.RuneCountInString(input) < min {
 
-		str := fmt.Sprintf("Minimum %s characters.", strconv.Itoa(min))
+		output := fmt.Sprintf("Minimum %s characters.", strconv.Itoa(min))
 
-		return str, false
+		addError(name, output)
 	}
-
-	return "", true
 }
 
-func URL(s string) (string, bool) {
+func URL(name string, input string) {
 
-	m, err := regexp.MatchString("^(?:[http|https]+:\\/\\/)?(?:www\\.)?.+\\.[a-z]{2,3}$", s)
-
-	if err != nil || !m {
-		return "This is not a valid URL.", false
-	}
-
-	return "", true
-}
-
-func Kanji(s string) (string, bool) {
-
-	match, _ := regexp.MatchString("^\\p{Han}+$", s)
+	match, _ := regexp.MatchString("^(?:[http|https]+:\\/\\/)?(?:www\\.)?.+\\.[a-z]{2,3}$", input)
 
 	if !match {
-
-		return "Contains invalid characters.", false
+		addError(name, "This is not a valid URL.")
 	}
-
-	return "", true
 }
 
-func Kana(s string) (string, bool) {
+func KanjiJP(name string, input string) {
 
-	match, _ := regexp.MatchString("^[\\p{Katakana}\\p{Hiragana}]+$", s)
+	match, _ := regexp.MatchString("^\\p{Han}+$", input)
 
 	if !match {
-
-		return "Contains invalid characters.", false
+		addError(name, "Contains invalid characters.")
 	}
-
-	return "", true
 }
 
-// func (model *models.Model) Unique(model instance, field string, value string) (string, bool) {
+func KanaJP(name string, input string) {
 
-// 	_, collection := database.GetCollection("kanji")
+	match, _ := regexp.MatchString("^[\\p{Katakana}\\p{Hiragana}]+$", input)
 
-// 	err := collection.Find(bson.D{{field, value}}).One(&model)
-// 	if err == nil {
-// 		return "Duplicate", false
-// 	}
+	if !match {
+		addError(name, "Contains invalid characters.")
+	}
+}
 
-// 	return "", true
-// }
+func addError(name string, message string) {
+
+	propertyErrors := []string{}
+
+	if value, ok := validationErrors[name]; ok {
+		propertyErrors = value
+	}
+
+	propertyErrors = append(propertyErrors, message)
+
+	validationErrors[name] = propertyErrors
+}
