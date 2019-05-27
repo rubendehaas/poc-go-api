@@ -1,8 +1,6 @@
 package kanji
 
 import (
-	"encoding/json"
-	"io/ioutil"
 	"net/http"
 
 	"app/database"
@@ -15,9 +13,9 @@ import (
 )
 
 // response-code: 204, response-body: empty
-func Delete(w http.ResponseWriter, r *http.Request) {
+func Delete(w http.ResponseWriter, request *http.Request) {
 
-	vars := mux.Vars(r)
+	vars := mux.Vars(request)
 	id, _ := vars["id"]
 
 	session, collection := database.GetCollection(models.TableKanji)
@@ -33,9 +31,9 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 	response.NoContent(w)
 }
 
-func Get(w http.ResponseWriter, r *http.Request) {
+func Get(w http.ResponseWriter, request *http.Request) {
 
-	vars := mux.Vars(r)
+	vars := mux.Vars(request)
 	id, _ := vars["id"]
 
 	session, collection := database.GetCollection(models.TableKanji)
@@ -48,33 +46,24 @@ func Get(w http.ResponseWriter, r *http.Request) {
 	response.Ok(w, kanji)
 }
 
-func GetAll(w http.ResponseWriter, r *http.Request) {
+func GetAll(w http.ResponseWriter, request *http.Request) {
 
 	session, collection := database.GetCollection(models.TableKanji)
 	defer session.Close()
 
-	kanji := []models.Kanji{}
-	query := r.URL.Query()
-
-	pagination.Build(collection, query, &kanji)
+	pagination.Build(
+		collection,
+		request.URL.Query(),
+		&[]models.Kanji{},
+	)
 
 	response.Ok(w, pagination.Paginator)
 }
 
-func Post(w http.ResponseWriter, r *http.Request) {
+func Post(w http.ResponseWriter, request *http.Request) {
 
-	// Read body
-	payload, err := ioutil.ReadAll(r.Body)
-
-	if err != nil {
-
-		response.InternalServerError(w)
-		return
-	}
-
-	kanji, errs := validate(payload)
+	kanji, errs := requestHandler(request.Body)
 	if errs != nil {
-
 		response.UnprocessableEntity(w, errs)
 		return
 	}
@@ -83,7 +72,6 @@ func Post(w http.ResponseWriter, r *http.Request) {
 	defer session.Close()
 
 	if err := collection.Insert(kanji); err != nil {
-
 		response.InternalServerError(w)
 		return
 	}
@@ -91,34 +79,21 @@ func Post(w http.ResponseWriter, r *http.Request) {
 	response.Ok(w, kanji)
 }
 
-func Put(w http.ResponseWriter, r *http.Request) {
+func Put(w http.ResponseWriter, request *http.Request) {
 
-	// Read body
-	payload, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-
-		response.InternalServerError(w)
+	kanji, errs := requestHandler(request.Body)
+	if errs != nil {
+		response.UnprocessableEntity(w, errs)
 		return
 	}
 
-	// Read kanji
-	kanji := &models.Kanji{}
-	err = json.Unmarshal(payload, kanji)
-	if err != nil {
-
-		response.InternalServerError(w)
-		return
-	}
-
-	vars := mux.Vars(r)
+	vars := mux.Vars(request)
 	id, _ := vars["id"]
 
 	session, collection := database.GetCollection(models.TableKanji)
 	defer session.Close()
 
-	// Insert new
 	if err := collection.UpdateId(bson.ObjectIdHex(id), kanji); err != nil {
-
 		response.NotFound(w)
 		return
 	}

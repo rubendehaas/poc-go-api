@@ -2,13 +2,21 @@ package kanji
 
 import (
 	"app/models"
+	"app/utils/validation"
 	"encoding/json"
+	"io"
 	"net/url"
 )
 
 var (
 	errors url.Values
 )
+
+type Payload struct {
+	Writing string `json:"writing"`
+	Reading string `json:"reading"`
+	Meaning string `json:"meaning"`
+}
 
 func normalize(payload *Payload) models.Kanji {
 
@@ -21,22 +29,46 @@ func normalize(payload *Payload) models.Kanji {
 	return kanji
 }
 
-func unserialize(rb []byte) *Payload {
+func unserialize(requestBody io.ReadCloser) *Payload {
 
-	p := &Payload{}
-
-	if err := json.Unmarshal(rb, p); err != nil {
+	payload := &Payload{}
+	err := json.NewDecoder(requestBody).Decode(payload)
+	if err != nil {
 		return nil
 	}
 
-	return p
+	return payload
 }
 
-func validate(rb []byte) (*models.Kanji, url.Values) {
+func (payload Payload) validate() map[string][]string {
+
+	rules := validation.DataFormat{
+		"writing": {"required", "max_chars:1", "kanji"},
+		"reading": {"required", "kana"},
+		"meaning": {"required"},
+	}
+
+	options := validation.Options{
+		Rules:   rules,
+		Payload: payload,
+	}
+
+	validator := validation.New(options)
+
+	err := validator.Validate()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func requestHandler(requestBody io.ReadCloser) (*models.Kanji, url.Values) {
 
 	errors = url.Values{}
 
-	payload := unserialize(rb)
+	payload := unserialize(requestBody)
 
 	if payload == nil {
 
@@ -45,7 +77,7 @@ func validate(rb []byte) (*models.Kanji, url.Values) {
 		return nil, errors
 	}
 
-	errors = payload.Validate()
+	errors = payload.validate()
 
 	if len(errors) > 0 {
 

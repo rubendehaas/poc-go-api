@@ -20,7 +20,7 @@ type (
 )
 
 var (
-	validationErrors map[string][]string
+	validationErrors url.Values
 )
 
 func New(options Options) *Validator {
@@ -30,8 +30,6 @@ func New(options Options) *Validator {
 func (validator *Validator) Validate() url.Values {
 
 	validationErrors = url.Values{}
-
-	validationErrors = make(map[string][]string)
 
 	for key, value := range validator.getPayloadProperties() {
 		validator.validateProperty(key, value)
