@@ -1,41 +1,48 @@
 package validation
 
 import (
-	"fmt"
+	"net/url"
 	"reflect"
-	"regexp"
-	"strconv"
 	"strings"
-	"unicode/utf8"
 )
 
-var validationErrors map[string][]string
+type (
+	DataFormat map[string][]string
 
-var rules map[string][]string
+	Options struct {
+		Rules   DataFormat
+		Payload interface{}
+	}
 
-func Validate(payload interface{}, _rules map[string][]string) map[string][]string {
+	Validator struct {
+		Options Options
+	}
+)
 
-	defer reset()
+var (
+	validationErrors map[string][]string
+)
+
+func New(options Options) *Validator {
+	return &Validator{options}
+}
+
+func (validator *Validator) Validate() url.Values {
+
+	validationErrors = url.Values{}
 
 	validationErrors = make(map[string][]string)
 
-	rules = _rules
-
-	for key, value := range getPayloadProperties(payload) {
-		validateProperty(key, value)
+	for key, value := range validator.getPayloadProperties() {
+		validator.validateProperty(key, value)
 	}
 
 	return validationErrors
 }
 
-func reset() {
-	rules = map[string][]string{}
-	validationErrors = map[string][]string{}
-}
+func (validator *Validator) getPayloadProperties() map[string]interface{} {
 
-func getPayloadProperties(payload interface{}) map[string]interface{} {
-
-	concreteValues := reflect.ValueOf(payload)
+	concreteValues := reflect.ValueOf(validator.Options.Payload)
 
 	properties := make(map[string]interface{})
 
@@ -50,9 +57,9 @@ func getPayloadProperties(payload interface{}) map[string]interface{} {
 	return properties
 }
 
-func validateProperty(name string, value interface{}) {
+func (validator *Validator) validateProperty(name string, value interface{}) {
 
-	fieldRules := rules[name]
+	fieldRules := validator.Options.Rules[name]
 
 	for _, rule := range fieldRules {
 		resolveValidationMethod(rule, name, value)
@@ -79,75 +86,11 @@ func resolveValidationMethod(ruleName string, name string, value interface{}) {
 	case "min_chars":
 		MinChars(name, value.(string), params)
 	case "url":
-		URL(name, value.(string))
+		Url(name, value.(string))
 	case "kanji":
 		KanjiJP(name, value.(string))
 	case "kana":
 		KanaJP(name, value.(string))
-	default:
-
-	}
-}
-
-// "input" cannot be empty.
-func Required(name string, input string) {
-
-	if input == "" {
-
-		addError(name, "Cannot be empty.")
-	}
-}
-
-// "input" can have "max" amount of characters.
-func MaxChars(name string, input string, param string) {
-
-	max, _ := strconv.Atoi(param)
-
-	if utf8.RuneCountInString(input) > max {
-
-		output := fmt.Sprintf("Maximum %s characters.", strconv.Itoa(max))
-
-		addError(name, output)
-	}
-}
-
-// "input" must have "min" amount of characters.
-func MinChars(name string, input string, param string) {
-
-	min, _ := strconv.Atoi(param)
-
-	if utf8.RuneCountInString(input) < min {
-
-		output := fmt.Sprintf("Minimum %s characters.", strconv.Itoa(min))
-
-		addError(name, output)
-	}
-}
-
-func URL(name string, input string) {
-
-	match, _ := regexp.MatchString("^(?:[http|https]+:\\/\\/)?(?:www\\.)?.+\\.[a-z]{2,3}$", input)
-
-	if !match {
-		addError(name, "This is not a valid URL.")
-	}
-}
-
-func KanjiJP(name string, input string) {
-
-	match, _ := regexp.MatchString("^\\p{Han}+$", input)
-
-	if !match {
-		addError(name, "Contains invalid characters.")
-	}
-}
-
-func KanaJP(name string, input string) {
-
-	match, _ := regexp.MatchString("^[\\p{Katakana}\\p{Hiragana}]+$", input)
-
-	if !match {
-		addError(name, "Contains invalid characters.")
 	}
 }
 

@@ -45,7 +45,7 @@ func validate(rb []byte) (*models.Kanji, url.Values) {
 		return nil, errors
 	}
 
-	errors := payload.Validate()
+	errors = payload.Validate()
 
 	if len(errors) > 0 {
 

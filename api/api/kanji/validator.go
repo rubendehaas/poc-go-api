@@ -10,17 +10,22 @@ type Payload struct {
 	Meaning string `json:"meaning"`
 }
 
-func rules() map[string][]string {
-	return map[string][]string{
+func (payload Payload) Validate() map[string][]string {
+
+	rules := validation.DataFormat{
 		"writing": {"required", "max_chars:1", "kanji"},
 		"reading": {"required", "kana"},
 		"meaning": {"required"},
 	}
-}
 
-func (payload Payload) Validate() map[string][]string {
+	options := validation.Options{
+		Rules:   rules,
+		Payload: payload,
+	}
 
-	err := validation.Validate(payload, rules())
+	validator := validation.New(options)
+
+	err := validator.Validate()
 
 	if err != nil {
 		return err
