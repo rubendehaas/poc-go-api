@@ -79,16 +79,28 @@ func resolveValidationMethod(ruleName string, name string, value interface{}) {
 	switch ruleName {
 	case "required":
 		Required(name, value.(string))
-	case "max_chars":
-		MaxChars(name, value.(string), params)
-	case "min_chars":
-		MinChars(name, value.(string), params)
+	case "integer":
+		Integer(name, value.(string))
+	case "str_max":
+		StrMax(name, value.(string), params)
+	case "str_min":
+		StrMin(name, value.(string), params)
+	case "int_max":
+		IntMax(name, value.(string), params)
+	case "int_min":
+		IntMin(name, value.(string), params)
 	case "url":
 		Url(name, value.(string))
-	case "kanji":
-		KanjiJP(name, value.(string))
-	case "kana":
-		KanaJP(name, value.(string))
+	case "jp_kanji":
+		JPKanji(name, value.(string))
+	case "jp_hiragana":
+		JPHiragana(name, value.(string))
+	case "jp_katakana":
+		JPKatakana(name, value.(string))
+	case "jp_kana":
+		JPKana(name, value.(string))
+	case "jp_all":
+		JPAll(name, value.(string))
 	}
 }
 

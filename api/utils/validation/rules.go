@@ -16,8 +16,17 @@ func Required(name string, input string) {
 	}
 }
 
+func Integer(name string, input string) {
+
+	_, err := strconv.Atoi(input)
+
+	if err != nil {
+		addError(name, "Not a number.")
+	}
+}
+
 // "input" can have "max" amount of characters.
-func MaxChars(name string, input string, param string) {
+func StrMax(name string, input string, param string) {
 
 	max, _ := strconv.Atoi(param)
 
@@ -30,11 +39,39 @@ func MaxChars(name string, input string, param string) {
 }
 
 // "input" must have "min" amount of characters.
-func MinChars(name string, input string, param string) {
+func StrMin(name string, input string, param string) {
 
 	min, _ := strconv.Atoi(param)
 
 	if utf8.RuneCountInString(input) < min {
+
+		output := fmt.Sprintf("Minimum %s characters.", strconv.Itoa(min))
+
+		addError(name, output)
+	}
+}
+
+// "input" must have "min" amount of characters.
+func IntMax(name string, input string, param string) {
+
+	value, _ := strconv.Atoi(input)
+	max, _ := strconv.Atoi(param)
+
+	if value > max {
+
+		output := fmt.Sprintf("Minimum %s characters.", strconv.Itoa(max))
+
+		addError(name, output)
+	}
+}
+
+// "input" must have "min" amount of characters.
+func IntMin(name string, input string, param string) {
+
+	value, _ := strconv.Atoi(input)
+	min, _ := strconv.Atoi(param)
+
+	if value < min {
 
 		output := fmt.Sprintf("Minimum %s characters.", strconv.Itoa(min))
 
@@ -51,7 +88,7 @@ func Url(name string, input string) {
 	}
 }
 
-func KanjiJP(name string, input string) {
+func JPKanji(name string, input string) {
 
 	match, _ := regexp.MatchString("^\\p{Han}+$", input)
 
@@ -60,9 +97,36 @@ func KanjiJP(name string, input string) {
 	}
 }
 
-func KanaJP(name string, input string) {
+func JPHiragana(name string, input string) {
+
+	match, _ := regexp.MatchString("^\\p{Hiragana}+$", input)
+
+	if !match {
+		addError(name, "Contains invalid characters.")
+	}
+}
+
+func JPKatakana(name string, input string) {
+
+	match, _ := regexp.MatchString("^\\p{Katakana}+$", input)
+
+	if !match {
+		addError(name, "Contains invalid characters.")
+	}
+}
+
+func JPKana(name string, input string) {
 
 	match, _ := regexp.MatchString("^[\\p{Katakana}\\p{Hiragana}]+$", input)
+
+	if !match {
+		addError(name, "Contains invalid characters.")
+	}
+}
+
+func JPAll(name string, input string) {
+
+	match, _ := regexp.MatchString("^[\\p{Han}\\p{Katakana}\\p{Hiragana}]+$", input)
 
 	if !match {
 		addError(name, "Contains invalid characters.")

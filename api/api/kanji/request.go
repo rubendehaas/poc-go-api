@@ -8,10 +8,6 @@ import (
 	"net/url"
 )
 
-var (
-	errors url.Values
-)
-
 type Payload struct {
 	Writing string `json:"writing"`
 	Reading string `json:"reading"`
@@ -43,8 +39,8 @@ func unserialize(requestBody io.ReadCloser) *Payload {
 func (payload Payload) validate() map[string][]string {
 
 	rules := validation.DataFormat{
-		"writing": {"required", "max_chars:1", "kanji"},
-		"reading": {"required", "kana"},
+		"writing": {"required", "str_max:1", "jp_kanji"},
+		"reading": {"required", "jp_kana"},
 		"meaning": {"required"},
 	}
 
@@ -66,21 +62,17 @@ func (payload Payload) validate() map[string][]string {
 
 func requestHandler(requestBody io.ReadCloser) (*models.Kanji, url.Values) {
 
-	errors = url.Values{}
-
+	errors := url.Values{}
 	payload := unserialize(requestBody)
 
 	if payload == nil {
-
 		errors.Add("invalid_payload", "Your payload sucks dude.")
-
 		return nil, errors
 	}
 
 	errors = payload.validate()
 
 	if len(errors) > 0 {
-
 		return nil, errors
 	}
 
