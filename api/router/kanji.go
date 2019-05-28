@@ -2,6 +2,7 @@ package router
 
 import (
 	"app/api/kanji"
+	"app/utils/response"
 	"net/http"
 )
 
@@ -15,7 +16,13 @@ func (p *Provider) RegisterKanji() {
 }
 
 func createKanji(w http.ResponseWriter, r *http.Request) {
-	kanji.Post(w, r)
+
+	k, errs := kanji.RequestHandler(r)
+	if errs != nil {
+		response.UnprocessableEntity(w, errs)
+	}
+
+	kanji.Post(w, r, k)
 }
 
 func deleteKanji(w http.ResponseWriter, r *http.Request) {
@@ -31,5 +38,11 @@ func getAllKanji(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateKanji(w http.ResponseWriter, r *http.Request) {
-	kanji.Put(w, r)
+
+	k, errs := kanji.RequestHandler(r)
+	if errs != nil {
+		response.UnprocessableEntity(w, errs)
+	}
+
+	kanji.Put(w, r, k)
 }

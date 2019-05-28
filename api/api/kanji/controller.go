@@ -60,13 +60,7 @@ func GetAll(w http.ResponseWriter, request *http.Request) {
 	response.Ok(w, pagination.Paginator)
 }
 
-func Post(w http.ResponseWriter, request *http.Request) {
-
-	kanji, errs := requestHandler(request.Body)
-	if errs != nil {
-		response.UnprocessableEntity(w, errs)
-		return
-	}
+func Post(w http.ResponseWriter, request *http.Request, kanji *models.Kanji) {
 
 	session, collection := database.GetCollection(models.TableKanji)
 	defer session.Close()
@@ -79,13 +73,7 @@ func Post(w http.ResponseWriter, request *http.Request) {
 	response.Ok(w, kanji)
 }
 
-func Put(w http.ResponseWriter, request *http.Request) {
-
-	kanji, errs := requestHandler(request.Body)
-	if errs != nil {
-		response.UnprocessableEntity(w, errs)
-		return
-	}
+func Put(w http.ResponseWriter, request *http.Request, kanji *models.Kanji) {
 
 	vars := mux.Vars(request)
 	id, _ := vars["id"]

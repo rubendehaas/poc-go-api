@@ -5,6 +5,7 @@ import (
 	"app/utils/validation"
 	"encoding/json"
 	"io"
+	"net/http"
 	"net/url"
 )
 
@@ -60,10 +61,10 @@ func (payload Payload) validate() map[string][]string {
 	return nil
 }
 
-func requestHandler(requestBody io.ReadCloser) (*models.Kanji, url.Values) {
+func RequestHandler(request *http.Request) (*models.Kanji, url.Values) {
 
 	errors := url.Values{}
-	payload := unserialize(requestBody)
+	payload := unserialize(request.Body)
 
 	if payload == nil {
 		errors.Add("invalid_payload", "Your payload sucks dude.")
