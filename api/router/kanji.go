@@ -2,8 +2,14 @@ package router
 
 import (
 	"app/api/kanji"
+	"app/database"
+	"app/models"
 	"app/utils/response"
 	"net/http"
+	"net/url"
+
+	mgo "gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 func (p *Provider) RegisterKanji() {
@@ -17,12 +23,25 @@ func (p *Provider) RegisterKanji() {
 
 func createKanji(w http.ResponseWriter, r *http.Request) {
 
-	k, errs := kanji.RequestHandler(r)
+	rawResource, errs := kanji.RequestHandler(r)
 	if errs != nil {
 		response.UnprocessableEntity(w, errs)
 	}
 
-	kanji.Post(w, r, k)
+	// TODO: db request validation
+	// Kanji is validated by its unique Writing or ID
+
+	session, collection := database.GetCollection(models.TableKanji)
+	defer session.Close()
+
+	kanjiResource := models.Kanji{}
+
+	err := collection.Find(bson.M{"writing": rawResource.Writing}).One(&kanjiResource)
+	if err != mgo.ErrNotFound {
+		response.UnprocessableEntity(w, url.Values{"illegal_operation": []string{"Resource already exists."}})
+	}
+
+	kanji.Post(w, r, rawResource)
 }
 
 func deleteKanji(w http.ResponseWriter, r *http.Request) {
