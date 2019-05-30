@@ -13,36 +13,52 @@ import (
 )
 
 func (p *Provider) RegisterKanji() {
-
-	p.router.HandleFunc("/kanji", createKanji).Methods("POST")
+	p.router.HandleFunc("/kanji", requestMiddleware(resourceMiddleware(createKanji))).Methods("POST")
 	p.router.HandleFunc("/kanji/{id}", deleteKanji).Methods("DELETE")
 	p.router.HandleFunc("/kanji", getAllKanji).Methods("GET")
 	p.router.HandleFunc("/kanji/{id}", getKanji).Methods("GET")
 	p.router.HandleFunc("/kanji/{id}", updateKanji).Methods("PUT")
 }
 
+func requestMiddleware(next http.HandleFunc) http.HandleFunc {
+	
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		
+		rawResource, errs := kanji.RequestHandler(r)
+		if errs != nil {
+			response.UnprocessableEntity(w, errs)
+			return
+		}
+		
+		context.Set(request, "rawResource", rawResource)
+		
+		next(writer, request)
+	})
+}
+
+
+func resourceMiddleware(next http.HandleFunc) http.HandleFunc {
+	
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		
+		rawResource := context.Get(req, "rawResource")
+		
+		session, collection := database.GetCollection(models.TableKanji)
+		defer session.Close()
+
+		kanjiResource := models.Kanji{}
+
+		err := collection.Find(bson.M{"writing": rawResource.Writing}).One(&kanjiResource)
+		if err != mgo.ErrNotFound {
+			response.UnprocessableEntity(w, url.Values{"illegal_operation": []string{"Resource already exists."}})
+			return
+		}
+		
+		next(writer, request)
+	})
+}
+
 func createKanji(w http.ResponseWriter, r *http.Request) {
-
-	rawResource, errs := kanji.RequestHandler(r)
-	if errs != nil {
-		response.UnprocessableEntity(w, errs)
-		return
-	}
-
-	// TODO: db request validation
-	// Kanji is validated by its unique Writing or ID
-
-	session, collection := database.GetCollection(models.TableKanji)
-	defer session.Close()
-
-	kanjiResource := models.Kanji{}
-
-	err := collection.Find(bson.M{"writing": rawResource.Writing}).One(&kanjiResource)
-	if err != mgo.ErrNotFound {
-		response.UnprocessableEntity(w, url.Values{"illegal_operation": []string{"Resource already exists."}})
-		return
-	}
-
 	kanji.Post(w, r, rawResource)
 }
 
