@@ -20,7 +20,7 @@ func (p *Provider) RegisterKanji() {
 	p.router.HandleFunc("/kanji/{id}", updateKanji).Methods("PUT")
 }
 
-func requestMiddleware(next http.HandleFunc) http.HandleFunc {
+func requestMiddleware(next http.Handler) http.Handler {
 	
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		
@@ -32,16 +32,16 @@ func requestMiddleware(next http.HandleFunc) http.HandleFunc {
 		
 		context.Set(request, "rawResource", rawResource)
 		
-		next(writer, request)
+		next.ServeHTTP(writer, request)
 	})
 }
 
 
-func resourceMiddleware(next http.HandleFunc) http.HandleFunc {
+func resourceMiddleware(next http.Handler) http.Handler {
 	
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		
-		rawResource := context.Get(req, "rawResource")
+		rawResource := context.Get(request, "rawResource")
 		
 		session, collection := database.GetCollection(models.TableKanji)
 		defer session.Close()
@@ -54,7 +54,7 @@ func resourceMiddleware(next http.HandleFunc) http.HandleFunc {
 			return
 		}
 		
-		next(writer, request)
+		next.ServeHTTP(writer, request)
 	})
 }
 
