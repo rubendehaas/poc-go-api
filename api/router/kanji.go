@@ -24,9 +24,10 @@ func requestMiddleware(next http.Handler) http.Handler {
 	
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		
-		rawResource, errs := kanji.RequestHandler(r)
+		// TODO: extract the RequestHandler
+		rawResource, errs := kanji.RequestHandler(request)
 		if errs != nil {
-			response.UnprocessableEntity(w, errs)
+			response.UnprocessableEntity(writer, errs)
 			return
 		}
 		
@@ -50,7 +51,7 @@ func resourceMiddleware(next http.Handler) http.Handler {
 
 		err := collection.Find(bson.M{"writing": rawResource.Writing}).One(&kanjiResource)
 		if err != mgo.ErrNotFound {
-			response.UnprocessableEntity(w, url.Values{"illegal_operation": []string{"Resource already exists."}})
+			response.UnprocessableEntity(writer, url.Values{"illegal_operation": []string{"Resource already exists."}})
 			return
 		}
 		
@@ -58,29 +59,29 @@ func resourceMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func createKanji(w http.ResponseWriter, r *http.Request) {
-	kanji.Post(w, r, rawResource)
+func createKanji(w http.ResponseWriter, request *http.Request) {
+	kanji.Post(writer, request, rawResource)
 }
 
-func deleteKanji(w http.ResponseWriter, r *http.Request) {
-	kanji.Delete(w, r)
+func deleteKanji(w http.ResponseWriter, request *http.Request) {
+	kanji.Delete(writer, request)
 }
 
-func getKanji(w http.ResponseWriter, r *http.Request) {
-	kanji.Get(w, r)
+func getKanji(w http.ResponseWriter, request *http.Request) {
+	kanji.Get(writer, request)
 }
 
-func getAllKanji(w http.ResponseWriter, r *http.Request) {
-	kanji.GetAll(w, r)
+func getAllKanji(writer http.ResponseWriter, request *http.Request) {
+	kanji.GetAll(writer, request)
 }
 
-func updateKanji(w http.ResponseWriter, r *http.Request) {
+func updateKanji(writer http.ResponseWriter, request *http.Request) {
 
-	k, errs := kanji.RequestHandler(r)
+	k, errs := kanji.RequestHandler(request)
 	if errs != nil {
-		response.UnprocessableEntity(w, errs)
+		response.UnprocessableEntity(writer, errs)
 		return
 	}
 
-	kanji.Put(w, r, k)
+	kanji.Put(writer, request, k)
 }
