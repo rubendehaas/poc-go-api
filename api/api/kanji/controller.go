@@ -8,6 +8,7 @@ import (
 	"app/utils/pagination"
 	"app/utils/response"
 
+	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -60,7 +61,9 @@ func GetAll(w http.ResponseWriter, request *http.Request) {
 	response.Ok(w, pagination.Paginator)
 }
 
-func Post(w http.ResponseWriter, request *http.Request, kanji *models.Kanji) {
+func Post(w http.ResponseWriter, request *http.Request) {
+
+	kanji := (context.Get(request, "rawResource")).(*models.Kanji)
 
 	session, collection := database.GetCollection(models.TableKanji)
 	defer session.Close()
