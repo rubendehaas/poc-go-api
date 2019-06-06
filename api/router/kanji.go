@@ -6,9 +6,9 @@ import (
 	"app/models"
 	"app/utils/response"
 	"net/http"
-	"net/url"
 
 	"github.com/gorilla/context"
+	"github.com/gorilla/mux"
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -16,51 +16,15 @@ import (
 func (p *Provider) RegisterKanji() {
 
 	createHandler := http.HandlerFunc(createKanji)
+	deleteHandler := http.HandlerFunc(deleteKanji)
+	getHandler := http.HandlerFunc(getKanji)
+	updateHandler := http.HandlerFunc(updateKanji)
 
-	p.router.Handle("/kanji", requestMiddleware(resourceMiddleware(createHandler))).Methods("POST")
-	p.router.HandleFunc("/kanji/{id}", deleteKanji).Methods("DELETE")
+	p.router.Handle("/kanji", requestMiddleware(createHandler)).Methods("POST")
+	p.router.Handle("/kanji/{id}", modelBindingMiddleware(deleteHandler)).Methods("DELETE")
 	p.router.HandleFunc("/kanji", getAllKanji).Methods("GET")
-	p.router.HandleFunc("/kanji/{id}", getKanji).Methods("GET")
-	p.router.HandleFunc("/kanji/{id}", updateKanji).Methods("PUT")
-}
-
-func requestMiddleware(next http.Handler) http.Handler {
-
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-
-		// TODO: extract the RequestHandler
-		rawResource, errs := kanji.RequestHandler(request)
-		if errs != nil {
-			response.UnprocessableEntity(writer, errs)
-			return
-		}
-
-		context.Set(request, "rawResource", rawResource)
-
-		next.ServeHTTP(writer, request)
-	})
-}
-
-func resourceMiddleware(next http.Handler) http.Handler {
-
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-
-		rawResource := (context.Get(request, "rawResource")).(*models.Kanji)
-
-		session, collection := database.GetCollection(models.TableKanji)
-		defer session.Close()
-
-		kanjiResource := models.Kanji{}
-
-		err := collection.Find(bson.M{"writing": rawResource.Writing}).One(&kanjiResource)
-
-		if err != mgo.ErrNotFound {
-			response.UnprocessableEntity(writer, url.Values{"illegal_operation": []string{"Resource already exists."}})
-			return
-		}
-
-		next.ServeHTTP(writer, request)
-	})
+	p.router.Handle("/kanji/{id}", modelBindingMiddleware(getHandler)).Methods("GET")
+	p.router.Handle("/kanji/{id}", requestMiddleware(modelBindingMiddleware(updateHandler))).Methods("PUT")
 }
 
 func createKanji(writer http.ResponseWriter, request *http.Request) {
@@ -80,12 +44,45 @@ func getAllKanji(writer http.ResponseWriter, request *http.Request) {
 }
 
 func updateKanji(writer http.ResponseWriter, request *http.Request) {
+	kanji.Put(writer, request)
+}
 
-	k, errs := kanji.RequestHandler(request)
-	if errs != nil {
-		response.UnprocessableEntity(writer, errs)
-		return
-	}
+func requestMiddleware(next http.Handler) http.Handler {
 
-	kanji.Put(writer, request, k)
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+
+		resource, errs := kanji.RequestHandler(request)
+		if errs != nil {
+			response.UnprocessableEntity(writer, errs)
+			return
+		}
+
+		context.Set(request, "resource", resource)
+
+		next.ServeHTTP(writer, request)
+	})
+}
+
+func modelBindingMiddleware(next http.Handler) http.Handler {
+
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+
+		vars := mux.Vars(request)
+		id, _ := vars["id"]
+
+		session, collection := database.GetCollection(models.TableKanji)
+		defer session.Close()
+
+		kanji := models.Kanji{}
+
+		err := collection.Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&kanji)
+		if err == mgo.ErrNotFound {
+			response.NotFound(writer)
+			return
+		}
+
+		context.Set(request, "kanji", &kanji)
+
+		next.ServeHTTP(writer, request)
+	})
 }
