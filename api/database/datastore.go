@@ -67,6 +67,7 @@ func RemoveCollection(col string) {
 	}
 }
 
+// TODO: extract
 func seedKanjiData() {
 
 	log.Println("Seeding mock data to MongoDB")

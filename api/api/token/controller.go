@@ -3,6 +3,7 @@ package token
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"app/database"
@@ -11,8 +12,6 @@ import (
 
 	jwt "github.com/dgrijalva/jwt-go"
 )
-
-var mySigningKey = []byte("captainjacksparrowsayshi")
 
 func Get(writer http.ResponseWriter, request *http.Request) {
 
@@ -23,7 +22,7 @@ func Get(writer http.ResponseWriter, request *http.Request) {
 	claims["authorized"] = true
 	claims["expired_at"] = time.Now().Add(time.Minute * 30).Unix()
 
-	tokenString, err := jwtToken.SignedString(mySigningKey)
+	tokenString, err := jwtToken.SignedString([]byte(os.Getenv("JWT_TOKEN")))
 
 	if err != nil {
 		fmt.Errorf("Something Went Wrong: %s", err.Error())

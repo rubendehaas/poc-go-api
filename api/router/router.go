@@ -2,6 +2,7 @@ package router
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
 )
@@ -21,5 +22,5 @@ func Load() {
 	provider.RegisterKanji()
 	provider.RegisterToken()
 
-	http.ListenAndServe(":8080", provider.router)
+	http.ListenAndServe(":"+os.Getenv("HTTP_PORT"), provider.router)
 }
