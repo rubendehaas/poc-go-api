@@ -44,13 +44,10 @@ func GetAll(writer http.ResponseWriter, request *http.Request) {
 	session, collection := database.GetCollection(models.TableKanji)
 	defer session.Close()
 
-	pagination.Build(
-		collection,
-		request.URL.Query(),
-		&[]models.Kanji{},
-	)
+	paginator := pagination.New(request.URL.Query())
+	paginator.Build(collection, &[]models.Kanji{})
 
-	response.Ok(writer, pagination.Paginator)
+	response.Ok(writer, paginator)
 }
 
 func Post(writer http.ResponseWriter, request *http.Request) {

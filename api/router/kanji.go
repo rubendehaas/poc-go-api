@@ -16,31 +16,31 @@ import (
 
 func (p *Provider) RegisterKanji() {
 
+	getAll := http.HandlerFunc(kanji.GetAll)
+
 	p.router.HandleFunc("/kanji", createKanji).Methods("POST")
 	p.router.HandleFunc("/kanji/{id}", deleteKanji).Methods("DELETE")
-	p.router.HandleFunc("/kanji", getAllKanji).Methods("GET")
+	p.router.Handle("/kanji", middleware.Authorize(getAll)).Methods("GET")
 	p.router.HandleFunc("/kanji/{id}", getKanji).Methods("GET")
 	p.router.HandleFunc("/kanji/{id}", updateKanji).Methods("PUT")
 }
 
 func createKanji(writer http.ResponseWriter, request *http.Request) {
 
-	handler := http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		kanji.Post(writer, request)
-	})
+	handler := http.HandlerFunc(kanji.Post)
 
 	middleware.Authorize(
 		validateRequest(
 			handler,
 		),
 	)
+
+	handler.ServeHTTP(writer, request)
 }
 
 func deleteKanji(writer http.ResponseWriter, request *http.Request) {
 
-	handler := http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		kanji.Delete(writer, request)
-	})
+	handler := http.HandlerFunc(kanji.Delete)
 
 	middleware.Authorize(
 		validateRequest(
@@ -49,30 +49,21 @@ func deleteKanji(writer http.ResponseWriter, request *http.Request) {
 			),
 		),
 	)
+
+	handler.ServeHTTP(writer, request)
 }
 
 func getKanji(writer http.ResponseWriter, request *http.Request) {
 
-	handler := http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		kanji.Get(writer, request)
-	})
+	handler := http.HandlerFunc(kanji.Get)
 
 	middleware.Authorize(
 		modelBinding(
 			handler,
 		),
 	)
-}
 
-func getAllKanji(writer http.ResponseWriter, request *http.Request) {
-
-	handler := http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		kanji.GetAll(writer, request)
-	})
-
-	middleware.Authorize(
-		handler,
-	)
+	handler.ServeHTTP(writer, request)
 }
 
 func updateKanji(writer http.ResponseWriter, request *http.Request) {
@@ -88,6 +79,8 @@ func updateKanji(writer http.ResponseWriter, request *http.Request) {
 			),
 		),
 	)
+
+	handler.ServeHTTP(writer, request)
 }
 
 func validateRequest(next http.Handler) http.Handler {

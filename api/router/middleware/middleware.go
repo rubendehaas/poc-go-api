@@ -47,6 +47,7 @@ func Authorize(next http.Handler) http.Handler {
 
 			if time.Now().Unix() > int64(claims["expired_at"].(float64)) {
 				response.Forbidden(writer, "Not Authorized: token expired")
+				return
 			}
 
 			session, collection := database.GetCollection(models.TableToken)
@@ -62,6 +63,7 @@ func Authorize(next http.Handler) http.Handler {
 
 			if rawToken.Valid {
 				next.ServeHTTP(writer, request)
+				return
 			}
 		}
 

@@ -10,68 +10,89 @@ import (
 	mgo "gopkg.in/mgo.v2"
 )
 
-const Page = 1
-const Limit = 5
-const Order = "id DESC"
+const DefaultPage = 1
+const DefaultLimit = 5
+const DefaultOrder = "id DESC"
 
 const ASC = "ASC"
 const DESC = "DESC"
 
-var Paginator Paginate
+type (
+	options struct {
+		Limit      int     `json:"items_per_page"`
+		Page       int     `json:"page"`
+		TotalPages float64 `json:"total_pages"`
+		Count      int     `json:"count"`
+		Order      string  `json:"order"`
+	}
 
-type Paginate struct {
-	Data       interface{} `json:"data"`
-	Limit      int         `json:"items_per_page"`
-	Page       int         `json:"page"`
-	TotalPages float64     `json:"total_pages"`
-	Count      int         `json:"count"`
+	Paginator struct {
+		Data    interface{} `json:"data"`
+		Options options     `json:"options"`
+	}
+)
+
+func New(urlParameter url.Values) *Paginator {
+
+	page := getNumberQueryParam(urlParameter.Get("page"), DefaultPage)
+	limit := getNumberQueryParam(urlParameter.Get("limit"), DefaultLimit)
+	order := getMultipleQueryParam(urlParameter.Get("order"), DefaultOrder)
+
+	if page < DefaultPage {
+		page = DefaultPage
+	}
+
+	options := options{
+		Limit: limit,
+		Page:  page,
+		Order: order,
+	}
+
+	return &Paginator{Options: options}
 }
 
 // Set Pagination data based on the given page nr
-func Build(cllctn *mgo.Collection, q url.Values, m interface{}) {
+func (paginator *Paginator) Build(collection *mgo.Collection, resource interface{}) {
 
-	p := getNumberQueryParam(q.Get("page"), Page)
-	l := getNumberQueryParam(q.Get("limit"), Limit)
-	o := getMultipleQueryParam(q.Get("order"), Order)
-
-	if p < Page {
-		p = Page
+	count, countError := collection.Count()
+	if countError != nil {
+		log.Fatal(countError)
 	}
 
-	offset := l * (p - 1)
+	order := paginator.Options.Order
+	page := paginator.Options.Page
+	limit := paginator.Options.Limit
 
-	Paginator.Limit = l
-	Paginator.Page = p
+	paginator.Options.Count = count
+	paginator.Options.TotalPages = math.Round(float64(count) / float64(limit))
 
-	// Count the total amount of records of this Model
-	count, err := cllctn.Count()
-	if err != nil {
-		log.Fatal(err)
+	offset := limit * (page - 1)
+
+	queryError := collection.Find(nil).
+		Sort(order, "true").
+		Skip(offset).
+		Limit(limit).
+		All(resource)
+
+	if queryError != nil {
+		log.Fatal(queryError)
 	}
 
-	Paginator.Count = count
-
-	Paginator.TotalPages = math.Round(float64(Paginator.Count) / float64(l))
-
-	if err := cllctn.Find(nil).Sort(o, "true").Skip(offset).Limit(l).All(m); err != nil {
-		log.Fatal(err)
-	}
-
-	Paginator.Data = m
+	paginator.Data = resource
 }
 
-func getNumberQueryParam(q string, d int) int {
+func getNumberQueryParam(urlParameter string, d int) int {
 
-	if l, err := strconv.Atoi(q); err == nil {
+	if l, err := strconv.Atoi(urlParameter); err == nil {
 		return l
 	}
 
 	return d
 }
 
-func getMultipleQueryParam(q string, d string) string {
+func getMultipleQueryParam(urlParameter string, d string) string {
 
-	v := strings.Split(q, ",")
+	v := strings.Split(urlParameter, ",")
 
 	// check has 2 values
 	if len(v) != 2 {
