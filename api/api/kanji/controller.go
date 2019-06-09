@@ -14,7 +14,7 @@ import (
 )
 
 // response-code: 204, response-body: empty
-func Delete(w http.ResponseWriter, request *http.Request) {
+func Delete(writer http.ResponseWriter, request *http.Request) {
 
 	vars := mux.Vars(request)
 	id, _ := vars["id"]
@@ -25,21 +25,21 @@ func Delete(w http.ResponseWriter, request *http.Request) {
 	err := collection.RemoveId(bson.ObjectIdHex(id))
 	if err != nil {
 
-		response.NotFound(w)
+		response.NotFound(writer)
 		return
 	}
 
-	response.NoContent(w)
+	response.NoContent(writer)
 }
 
-func Get(w http.ResponseWriter, request *http.Request) {
+func Get(writer http.ResponseWriter, request *http.Request) {
 
 	kanji := (context.Get(request, "kanji")).(*models.Kanji)
 
-	response.Ok(w, kanji)
+	response.Ok(writer, kanji)
 }
 
-func GetAll(w http.ResponseWriter, request *http.Request) {
+func GetAll(writer http.ResponseWriter, request *http.Request) {
 
 	session, collection := database.GetCollection(models.TableKanji)
 	defer session.Close()
@@ -50,10 +50,10 @@ func GetAll(w http.ResponseWriter, request *http.Request) {
 		&[]models.Kanji{},
 	)
 
-	response.Ok(w, pagination.Paginator)
+	response.Ok(writer, pagination.Paginator)
 }
 
-func Post(w http.ResponseWriter, request *http.Request) {
+func Post(writer http.ResponseWriter, request *http.Request) {
 
 	resource := (context.Get(request, "resource")).(*models.Kanji)
 
@@ -61,14 +61,14 @@ func Post(w http.ResponseWriter, request *http.Request) {
 	defer session.Close()
 
 	if err := collection.Insert(resource); err != nil {
-		response.InternalServerError(w)
+		response.InternalServerError(writer)
 		return
 	}
 
-	response.Ok(w, resource)
+	response.Ok(writer, resource)
 }
 
-func Put(w http.ResponseWriter, request *http.Request) {
+func Put(writer http.ResponseWriter, request *http.Request) {
 
 	vars := mux.Vars(request)
 	id, _ := vars["id"]
@@ -79,9 +79,9 @@ func Put(w http.ResponseWriter, request *http.Request) {
 	defer session.Close()
 
 	if err := collection.Update(bson.M{"_id": bson.ObjectIdHex(id)}, resource); err != nil {
-		response.NotFound(w)
+		response.NotFound(writer)
 		return
 	}
 
-	response.Ok(w, resource)
+	response.Ok(writer, resource)
 }

@@ -19,6 +19,7 @@ func Init() {
 	provider = Provider{mux.NewRouter()}
 
 	provider.RegisterKanji()
+	provider.RegisterToken()
 
 	http.ListenAndServe(":8080", provider.router)
 }
