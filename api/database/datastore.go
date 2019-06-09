@@ -2,6 +2,7 @@ package database
 
 import (
 	"log"
+	"os"
 	"time"
 
 	"app/models"
@@ -10,8 +11,8 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-const host string = "mongo:27017"
-const database string = "go_japanese"
+var host string
+var databaseName string
 
 type DataStore struct {
 	session *mgo.Session
@@ -21,7 +22,10 @@ var (
 	dataStore DataStore
 )
 
-func Init() {
+func Load() {
+
+	host = os.Getenv("DATABASE_HOST") + ":" + os.Getenv("DATABASE_PORT")
+	databaseName = os.Getenv("DATABASE_Name")
 
 	maxWait := time.Duration(5 * time.Second)
 	session, err := mgo.DialWithTimeout(host, maxWait)
@@ -44,7 +48,7 @@ func GetCollection(table string) (*mgo.Session, *mgo.Collection) {
 
 	session := NewSession()
 
-	collection := session.DB(database).C(table)
+	collection := session.DB(databaseName).C(table)
 
 	return session, collection
 }

@@ -14,7 +14,7 @@ var (
 	provider Provider
 )
 
-func Init() {
+func Load() {
 
 	provider = Provider{mux.NewRouter()}
 

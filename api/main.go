@@ -3,12 +3,19 @@ package main
 import (
 	"app/database"
 	"app/router"
+	"log"
+
+	"github.com/joho/godotenv"
 )
 
 func init() {
 
-	database.Init()
-	router.Init()
+	if err := godotenv.Load(); err != nil {
+		log.Print("No .env file found")
+	}
+
+	database.Load()
+	router.Load()
 }
 
 func main() {
