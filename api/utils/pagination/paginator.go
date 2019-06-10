@@ -81,30 +81,30 @@ func (paginator *Paginator) Build(collection *mgo.Collection, resource interface
 	paginator.Data = resource
 }
 
-func getNumberQueryParam(urlParameter string, d int) int {
+func getNumberQueryParam(urlParameter string, fallback int) int {
 
-	if l, err := strconv.Atoi(urlParameter); err == nil {
-		return l
+	if length, err := strconv.Atoi(urlParameter); err == nil {
+		return length
 	}
 
-	return d
+	return fallback
 }
 
-func getMultipleQueryParam(urlParameter string, d string) string {
+func getMultipleQueryParam(urlParameter string, fallback string) string {
 
-	v := strings.Split(urlParameter, ",")
+	values := strings.Split(urlParameter, ",")
 
 	// check has 2 values
-	if len(v) != 2 {
-		return d
+	if len(values) != 2 {
+		return fallback
 	}
 
-	direction := strings.ToUpper(v[1])
+	direction := strings.ToUpper(values[1])
 
 	// check 2nd value is ASC or DESC
 	if direction == ASC || direction == DESC {
-		return v[0] + " " + v[1]
+		return values[0] + " " + values[1]
 	}
 
-	return d
+	return fallback
 }
