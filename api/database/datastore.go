@@ -5,8 +5,6 @@ import (
 	"os"
 	"time"
 
-	"app/models"
-
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -36,7 +34,7 @@ func Load() {
 
 	dataStore = DataStore{session}
 
-	seedKanjiData()
+	defer Seed()
 }
 
 func NewSession() *mgo.Session {
@@ -65,31 +63,4 @@ func RemoveCollection(col string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-}
-
-// TODO: extract
-func seedKanjiData() {
-
-	log.Println("Seeding mock data to MongoDB")
-
-	session, collection := GetCollection("kanji")
-	defer session.Close()
-
-	RemoveCollection("kanji")
-
-	kanji := models.Kanji{}
-
-	kanji.Migrate(collection)
-
-	err := collection.Insert(
-		bson.M{"writing": "日", "reading": "にち", "meaning": "day"},
-		bson.M{"writing": "木", "reading": "き", "meaning": "tree"},
-		bson.M{"writing": "目", "reading": "め", "meaning": "eye"},
-	)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Println("Mock data added successfully!")
 }
