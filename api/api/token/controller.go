@@ -1,7 +1,6 @@
 package token
 
 import (
-	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -25,7 +24,7 @@ func Get(writer http.ResponseWriter, request *http.Request) {
 	tokenString, err := jwtToken.SignedString([]byte(os.Getenv("JWT_TOKEN")))
 
 	if err != nil {
-		fmt.Errorf("Something Went Wrong: %s", err.Error())
+		response.InternalServerError(writer)
 		return
 	}
 
