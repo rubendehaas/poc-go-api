@@ -1,26 +1,48 @@
 # Golang CircleCI 2.0 configuration file
 #
 # Check https://circleci.com/docs/2.0/language-go/ for more details
-version: 2
+version: 1
 jobs:
   build:
     docker:
       # specify the version
-      - image: circleci/golang:1.12
+      - image: circleci/golang:1.12 # built docker image
 
-      # Specify service dependencies here if necessary
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/postgres:9.4
-
-    #### TEMPLATE_NOTE: go expects specific checkout path representing url
-    #### expecting it in the form of
-    ####   /go/src/github.com/circleci/go-tool
-    ####   /go/src/bitbucket.org/circleci/go-tool
-    working_directory: /go/src/github.com/{{ORG_NAME}}/{{REPO_NAME}}
+    working_directory: /go/src/github.com/rubendehaas/poc-go-api
     steps:
-      - checkout
+      - checkout # check out source code to working directory
 
-      # specify any bash command here prefixed with `run: `
-      - run: go get -v -t -d ./...
-      - run: go test -v ./...
+      # - run: # Wait for MongoDB to be ready
+      #     name: Waiting for MongoDB to be ready
+      #     command: |
+      #       for i in `seq 1 10`;
+      #       do
+      #         nc -z mongo 27017 && echo Success && exit 0
+      #         echo -n .
+      #         sleep 1
+      #       done
+      #       echo Failed waiting for Postgres && exit 1
+
+      # - run: # Run all tests
+      #     name: Run Tests
+      #     command: "go test ./api/kanji/"
+
+      - run: make # pull and build dependencies for the project
+
+      # 
+      # - run: # Seed the database with necessary data
+      #     name: Seed MongoDB
+      #     command: "go seed"
+
+      - run: # Make sure appliction is accessible
+          name: Validate service is working
+          command: |
+            sleep 5
+            curl --retry 10 --retry-delay 1 -X GET --header "Content-Type: application/json" http://localhost:8080/token
+
+      # - store_artifacts: # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
+      #     path: /tmp/test-results
+      #     destination: raw-test-output
+
+      # - store_test_results: # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
+      #     path: /tmp/test-results
