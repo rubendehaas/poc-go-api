@@ -16,71 +16,17 @@ import (
 
 func (p *Provider) RegisterKanji() {
 
-	getAll := http.HandlerFunc(kanji.GetAll)
+	create := validateRequest(http.HandlerFunc(kanji.Post))
+	delete := modelBinding(http.HandlerFunc(kanji.Delete))
+	list := http.HandlerFunc(kanji.List)
+	get := modelBinding(http.HandlerFunc(kanji.Get))
+	update := validateRequest(modelBinding(http.HandlerFunc(kanji.Put)))
 
-	p.router.HandleFunc("/kanji", createKanji).Methods("POST")
-	p.router.HandleFunc("/kanji/{id}", deleteKanji).Methods("DELETE")
-	p.router.Handle("/kanji", middleware.Authorize(getAll)).Methods("GET")
-	p.router.HandleFunc("/kanji/{id}", getKanji).Methods("GET")
-	p.router.HandleFunc("/kanji/{id}", updateKanji).Methods("PUT")
-}
-
-func createKanji(writer http.ResponseWriter, request *http.Request) {
-
-	handler := http.HandlerFunc(kanji.Post)
-
-	middleware.Authorize(
-		validateRequest(
-			handler,
-		),
-	)
-
-	handler.ServeHTTP(writer, request)
-}
-
-func deleteKanji(writer http.ResponseWriter, request *http.Request) {
-
-	handler := http.HandlerFunc(kanji.Delete)
-
-	middleware.Authorize(
-		validateRequest(
-			modelBinding(
-				handler,
-			),
-		),
-	)
-
-	handler.ServeHTTP(writer, request)
-}
-
-func getKanji(writer http.ResponseWriter, request *http.Request) {
-
-	handler := http.HandlerFunc(kanji.Get)
-
-	middleware.Authorize(
-		modelBinding(
-			handler,
-		),
-	)
-
-	handler.ServeHTTP(writer, request)
-}
-
-func updateKanji(writer http.ResponseWriter, request *http.Request) {
-
-	handler := http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		kanji.Put(writer, request)
-	})
-
-	middleware.Authorize(
-		validateRequest(
-			modelBinding(
-				handler,
-			),
-		),
-	)
-
-	handler.ServeHTTP(writer, request)
+	p.router.Handle("/kanji", middleware.Authorize(create)).Methods("POST")
+	p.router.Handle("/kanji/{id}", middleware.Authorize(delete)).Methods("DELETE")
+	p.router.Handle("/kanji", middleware.Authorize(list)).Methods("GET")
+	p.router.Handle("/kanji/{id}", middleware.Authorize(get)).Methods("GET")
+	p.router.Handle("/kanji/{id}", middleware.Authorize(update)).Methods("PUT")
 }
 
 func validateRequest(next http.Handler) http.Handler {

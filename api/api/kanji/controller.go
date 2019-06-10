@@ -39,7 +39,7 @@ func Get(writer http.ResponseWriter, request *http.Request) {
 	response.Ok(writer, kanji)
 }
 
-func GetAll(writer http.ResponseWriter, request *http.Request) {
+func List(writer http.ResponseWriter, request *http.Request) {
 
 	session, collection := database.GetCollection(models.TableKanji)
 	defer session.Close()
