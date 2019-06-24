@@ -33,8 +33,6 @@ func Load() {
 	}
 
 	dataStore = DataStore{session}
-
-	defer Seed()
 }
 
 func NewSession() *mgo.Session {

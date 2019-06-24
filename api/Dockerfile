@@ -9,6 +9,7 @@ RUN go get github.com/gorilla/mux
 RUN go get github.com/gorilla/context
 RUN go get github.com/dgrijalva/jwt-go
 RUN go get github.com/joho/godotenv
+RUN go get github.com/spf13/cobra
 
 CMD [ "fresh" ]
 

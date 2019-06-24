@@ -1,6 +1,7 @@
 package main
 
 import (
+	"app/cmd"
 	"app/database"
 	"app/router"
 	"log"
@@ -19,5 +20,5 @@ func init() {
 }
 
 func main() {
-
+	cmd.Execute()
 }
